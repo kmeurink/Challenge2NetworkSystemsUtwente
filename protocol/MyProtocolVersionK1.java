@@ -7,12 +7,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Semaphore;
 
 import client.*;
-//First version of sliding window protocol.
+//Version of sliding window protocol.
 public class MyProtocolVersionK1 extends IRDTProtocol {
 
     // change the following as you wish:
     static final int HEADERSIZE=1;   // number of header bytes in each packet
-    static final int DATASIZE=64;   // max. number of user data bytes in each packet
+    static final int DATASIZE=128;   // max. number of user data bytes in each packet
     
     private int seqNumber = 0;
     private int timeOutCount = 0;
@@ -25,7 +25,6 @@ public class MyProtocolVersionK1 extends IRDTProtocol {
     private static final int sendWindowSize = 5;
     private static final int receiveWindowSize = 5;
     private static final int maxSeqNum = 11;
-    private Semaphore queuBlock = new Semaphore(sendWindowSize);
 
     //Sending side:
     private int lastFrameSent;

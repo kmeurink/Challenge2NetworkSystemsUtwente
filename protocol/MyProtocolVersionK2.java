@@ -7,7 +7,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Semaphore;
 
 import client.*;
-//Second version of sliding window protocol.
+//Other implementation of sliding window protocol.
 public class MyProtocolVersionK2 extends IRDTProtocol {
 
     // change the following as you wish:
