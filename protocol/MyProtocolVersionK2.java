@@ -1,18 +1,18 @@
 package protocol;
 
-import java.util.ArrayList;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Semaphore;
 
 import client.*;
-//Other implementation of sliding window protocol.
+
+//Optimizing sliding window protocol
 public class MyProtocolVersionK2 extends IRDTProtocol {
 
     // change the following as you wish:
     static final int HEADERSIZE=1;   // number of header bytes in each packet
-    static final int DATASIZE=64;   // max. number of user data bytes in each packet
+    static final int DATASIZE=128;   // max. number of user data bytes in each packet
     
     private int seqNumber = 0;
     private int timeOutCount = 0;
@@ -22,10 +22,9 @@ public class MyProtocolVersionK2 extends IRDTProtocol {
     private boolean allAcksReceived = false;
     
     //Sliding window protocol variables
-    private static final int sendWindowSize = 3;
-    private static final int receiveWindowSize = 3;
-    private static final int maxSeqNum = 7;
-    private Semaphore queuBlock = new Semaphore(sendWindowSize);
+    private static final int sendWindowSize = 5;
+    private static final int receiveWindowSize = 5;
+    private static final int maxSeqNum = 11;
 
     //Sending side:
     private int lastFrameSent;
@@ -68,20 +67,22 @@ public class MyProtocolVersionK2 extends IRDTProtocol {
                 //TODO does it need to block ?
                 // send the packet to the network layer
                 getNetworkLayer().sendPacket(pkt);
+                
+                //Add to the sent queue and create a timer to check if it is not forgotten.
                 sendQueu.add(pkt);
-                client.Utils.Timeout.SetTimeout(1000, this, seqNumber);
+                client.Utils.Timeout.SetTimeout(100, this, seqNumber);
                 System.out.println("Sent one packet with header="+pkt[0]);
                 
                 //Keep track of the last packet sent.
                 lastPacketSent = seqNumber;
                 this.lastFrameSent = seqNumber;
                 seqNumber = (seqNumber + 1);// % maxSeqNum; temporary implementation of inifinite count
+                
+                //Move the data read position to the next point.
                 filePointer += datalen;
         	}
-            // schedule a timer for 1000 ms into the future, just to show how that works:
-            //client.Utils.Timeout.SetTimeout(1000, this, seqNumber);
 
-            // and loop and sleep; you may use this loop to check for incoming acks...
+            // Let the sender sleep for a short while and see if any packets are received.
                try {
                	Thread.sleep(10);
                	Integer[] ackPacket = getNetworkLayer().receivePacket();
@@ -92,7 +93,7 @@ public class MyProtocolVersionK2 extends IRDTProtocol {
                 			  sendQueu.remove(i);
                 			  this.lastAckReceived = ackPacket[0];
                 			  packageCount++;
-                			  if (this.sendQueu.isEmpty()) {
+                			  if (this.sendQueu.isEmpty() && packageCount == Math.ceil(fileContents.length / this.DATASIZE)) {
                 				  this.allAcksReceived = true;
                 			  }
                         	}
@@ -112,11 +113,11 @@ public class MyProtocolVersionK2 extends IRDTProtocol {
         // handle expiration of the timeout:
         for (Integer[] i : sendQueu) {
         	if (i[0] == z) {
-                System.out.println("Timer expired with tag=" + z);
+                System.out.println("Ack not received within timeout for tag=" + z);
                 getNetworkLayer().sendPacket(i);
                 client.Utils.Timeout.SetTimeout(1000, this, z);
         	} else {
-                System.out.println("Timer expired but was handled");
+                //System.out.println("Timer expired but was handled");
         	}
         }
     }

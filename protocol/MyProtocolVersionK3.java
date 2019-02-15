@@ -4,7 +4,7 @@ package protocol;
 import java.util.Arrays;
 import client.*;
 
-public class NaiveDataTransferProtocol extends IRDTProtocol {
+public class MyProtocolVersionK3 extends IRDTProtocol {
 
     // change the following as you wish:
     static final int HEADERSIZE=1;   // number of header bytes in each packet

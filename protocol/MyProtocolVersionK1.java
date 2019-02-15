@@ -1,10 +1,8 @@
 package protocol;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Semaphore;
 
 import client.*;
 //Version of sliding window protocol.
