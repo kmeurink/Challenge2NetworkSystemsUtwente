@@ -6,28 +6,30 @@ import client.*;
 //Alternating bit protocol.
 public class MyProtocolVersionK3 extends IRDTProtocol {
 
-    // change the following as you wish:
     static final int HEADERSIZE=1;   // number of header bytes in each packet
     static final int DATASIZE=128;   // max. number of user data bytes in each packet
+    static final int TIMEOUTDELAY=700;   // time in ms before a packet is retransmitted.
     private int seqNum = 0;
     private int lastFrameSent = 0;
     private Integer[] lastPacketSent;
     private int lastFrameReceived = -1;
     private int tryCount = 0;
     private int packetCount = 0;
-    
+    private int packetsSent = 0;
+    private int maxPackets;
     @Override
     public void sender() {
         System.out.println("Sending...");
 
         // read from the input file
         Integer[] fileContents = Utils.getFileContents(getFileID());
+        this.maxPackets = (int)Math.ceil(fileContents.length / DATASIZE) + 1;
 
         // keep track of where we are in the data
         int filePointer = 0;
         
         //Ensure all packets are sent before stopping.
-        for (int i = 0; i < (int)Math.ceil(fileContents.length / this.DATASIZE) + 1; i++) {
+        for (int i = 0; i < maxPackets; i++) {
             // create a new packet of appropriate size
             int datalen = Math.min(DATASIZE, fileContents.length - filePointer);
             Integer[] pkt = new Integer[HEADERSIZE + datalen];
@@ -41,13 +43,14 @@ public class MyProtocolVersionK3 extends IRDTProtocol {
 
             // send the packet to the network layer
             getNetworkLayer().sendPacket(pkt);
+            packetsSent++;
             this.lastFrameSent = pkt[0];
             this.lastPacketSent = pkt;
     		filePointer += datalen;
             System.out.println("Sent one packet with header = " + pkt[0]);
 
             // schedule a timer, to ensure the packet is retransmitted if it never receives an ack.
-            client.Utils.Timeout.SetTimeout(600, this, this.lastFrameSent);
+            client.Utils.Timeout.SetTimeout(TIMEOUTDELAY, this, this.lastFrameSent);
 
             // Loop and sleep, waiting on an acknowledgement.
             boolean stop = false;
@@ -69,7 +72,8 @@ public class MyProtocolVersionK3 extends IRDTProtocol {
             }
         	
         }
-        System.out.println("Total packets sent: " + packetCount);
+        System.out.println("Total packets sent: " + packetsSent);
+        System.out.println("Individual packets sent: " + this.packetCount);
     }
 
     @Override
@@ -79,7 +83,8 @@ public class MyProtocolVersionK3 extends IRDTProtocol {
         if (this.seqNum == z) {
         	//Retransmit packet and restart timer.
             getNetworkLayer().sendPacket(this.lastPacketSent);
-            client.Utils.Timeout.SetTimeout(600, this, z);
+            packetsSent++;
+            client.Utils.Timeout.SetTimeout(TIMEOUTDELAY, this, z);
             System.out.println("Acknowledgement not received, tag = " + z);
         }
     }
